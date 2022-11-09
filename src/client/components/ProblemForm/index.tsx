@@ -52,15 +52,15 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({ className, problem, on
 
         setIsProblemCreating(true);
 
-        onSubmit({
-            summary,
-            description,
-            solution,
-            categoryIds
-        }).catch(error => {
+        onSubmit(
+            excludeEmpty({
+                summary,
+                description,
+                solution,
+                categoryIds
+            })
+        ).catch(() => {
             setIsProblemCreating(false);
-            console.log(error);
-            alert(error);
         });
     };
 
@@ -122,7 +122,7 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({ className, problem, on
                     <button
                         type="submit"
                         className={classnames(styles.problemFormRow__button, 'btn', 'btn-primary')}
-                        disabled={isProblemCreating || !summary || !description || !solution}
+                        disabled={isProblemCreating || !summary || !description}
                     >
                         {isProblemCreating ? 'Saving...' : 'Save'}
                     </button>
@@ -131,3 +131,12 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({ className, problem, on
         </section>
     );
 };
+
+function excludeEmpty(data: ProblemData) {
+    return Object.keys(data).reduce((result, key) => {
+        if (data[key]) {
+            result[key] = data[key];
+        }
+        return result;
+    }, {} as ProblemData);
+}

@@ -16,10 +16,11 @@ import { Problem, ProblemsSearchFilter, SearchProblemsResponse } from '../../lib
 import { Problems as ProblemsComponent } from '../../components/Problems';
 import { ProblemsSearchFilter as ProblemsSearchFilterComponent } from '../../components/ProblemsSearchFilter';
 import { Main } from '../../components/Main';
+import { messageBroker } from '../../lib/message-broker';
 
 import styles from './all.module.scss';
 
-const PROBLEMS_LIMIT = 1;
+const PROBLEMS_LIMIT = 5;
 
 const Problems: NextPage = () => {
     const { data, loading, refetch, fetchMore } = useQuery<SearchProblemsResponse>(
@@ -62,36 +63,21 @@ const Problems: NextPage = () => {
     };
 
     const onDelete = (problem: Problem) => {
-        return deleteProblem({ variables: { problemId: problem._id } }).then(
-            () => {
-                console.log(`Removed problem #${problem._id} successfully!`);
-            },
-            error => {
-                alert(error);
-            }
-        );
+        return deleteProblem({ variables: { problemId: problem._id } }).then(() => {
+            messageBroker.addSuccessMessage(`Removed problem #${problem._id} successfully!`);
+        });
     };
 
     const onLike = (problem: Problem) => {
-        return likeProblem({ variables: { problemId: problem._id } }).then(
-            () => {
-                console.log('Liked problem #${problem._id} successfully!');
-            },
-            error => {
-                alert(error);
-            }
-        );
+        return likeProblem({ variables: { problemId: problem._id } }).then(() => {
+            messageBroker.addSuccessMessage(`Liked problem #${problem._id} successfully!`);
+        });
     };
 
     const onUnlike = (problem: Problem) => {
-        return unlikeProblem({ variables: { problemId: problem._id } }).then(
-            () => {
-                console.log('Unliked problem #${problem._id} successfully!');
-            },
-            error => {
-                alert(error);
-            }
-        );
+        return unlikeProblem({ variables: { problemId: problem._id } }).then(() => {
+            messageBroker.addSuccessMessage(`Unliked problem #${problem._id} successfully!`);
+        });
     };
 
     if (loading || isUserLoading) return <p>Loading...</p>;

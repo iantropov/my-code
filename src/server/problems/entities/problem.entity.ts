@@ -1,6 +1,7 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Document, ObjectId } from 'mongoose';
+
 import { Category, CategorySchema } from './category.entity';
 
 @ObjectType()
@@ -19,8 +20,9 @@ export class Problem extends Document {
     @Prop()
     description: string;
 
+    @Field(() => String, { nullable: true })
     @Prop()
-    solution: string;
+    solution?: string;
 
     @Prop({ type: [CategorySchema], default: [] })
     categories: Category[];

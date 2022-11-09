@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useMutation, useQuery } from '@apollo/client';
 
 import { LOGOUT_USER_MUTATION, WHO_AM_I_QUERY } from '../../lib/graphql';
+import { messageBroker } from '../../lib/message-broker';
 
 import styles from './styles.module.scss';
 
@@ -21,15 +22,12 @@ export const Header: React.FC<HeaderProps> = ({ className }) => {
     });
 
     const onLogoutClick = () => {
-        logoutUser().then(
-            () => {
+        router.push('/users/login').then(() => {
+            logoutUser().then(() => {
                 client.resetStore();
-                setTimeout(() => router.push('/users/login'));
-            },
-            error => {
-                alert(error);
-            }
-        );
+                messageBroker.addSuccessMessage('Logged out successfully!');
+            });
+        });
     };
 
     return (

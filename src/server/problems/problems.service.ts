@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import { CreateProblemInput } from './dto/create-problem.input';
 import { UpdateProblemInput } from './dto/update-problem.input';
@@ -10,7 +10,7 @@ import { CategoriesService } from './categories.service';
 import { SearchProblemsArgs } from './dto/search-problems.args';
 import { GraphQLUser } from '../users/entities/user-graphql.entity';
 
-const DEFAULT_LIMIT = 10;
+const DEFAULT_LIMIT = 5;
 
 @Injectable()
 export class ProblemsService {
@@ -83,7 +83,7 @@ export class ProblemsService {
         };
     }
 
-    async findOne(id: string) {
+    async findOne(id: Types.ObjectId) {
         const problem = await this.problemModel.findOne({ _id: id });
         if (!problem) {
             throw new NotFoundException(`Problem #${id} not found`);
@@ -100,22 +100,34 @@ export class ProblemsService {
         return problem.save();
     }
 
-    async update(id: string, updateProblemDto: UpdateProblemInput) {
-        const existingProblem = await this.problemModel.findOneAndUpdate(
-            { _id: id },
-            { $set: updateProblemDto },
-            { new: true }
-        );
-
+    async update(id: Types.ObjectId, updateProblemDto: UpdateProblemInput) {
+        const existingProblem = await this.problemModel.findOne({ _id: id });
         if (!existingProblem) {
             throw new NotFoundException(`Problem #${id} not found`);
         }
-        return existingProblem;
+
+        let categories = [];
+        if (updateProblemDto.categoryIds) {
+            categories = await this.categoriesService.findByIds(updateProblemDto.categoryIds);
+        } else {
+            categories = existingProblem.categories;
+        }
+
+        return this.problemModel.findOneAndUpdate(
+            { _id: id },
+            {
+                $set: {
+                    ...updateProblemDto,
+                    categories
+                }
+            },
+            { new: true }
+        );
     }
 
-    async remove(id: string) {
+    async remove(id: Types.ObjectId) {
         const problem = await this.findOne(id);
-        await this.usersService.unlinkeProblemForAllUsers(id);
+        await this.usersService.unlinkProblemForAllUsers(id);
         return problem.remove();
     }
 }

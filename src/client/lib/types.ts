@@ -15,7 +15,7 @@ export interface Problem {
     _id: string;
     summary: string;
     description: string;
-    solution: string;
+    solution?: string;
     categories: Category[];
     categoryIds: string[];
 }
@@ -56,4 +56,16 @@ export interface SearchProblemsResponse {
             hasNextPage: boolean;
         }
     }
+}
+
+export interface GraphQLExtensions {
+    response?: {
+        message?: string[] | string
+    }
+}
+
+export interface Message {
+    id: string;
+    type: 'error' | 'success',
+    text: string;
 }

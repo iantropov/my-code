@@ -1,4 +1,9 @@
-import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloClient, ApolloLink, HttpLink } from '@apollo/client';
+import { onError } from '@apollo/client/link/error';
+
+import { apolloCache } from './apollo-cache';
+import { messageBroker } from './message-broker';
+import { GraphQLExtensions } from './types';
 
 let graphqlUri = '';
 if (process.env.NODE_ENV === 'production') {
@@ -7,48 +12,28 @@ if (process.env.NODE_ENV === 'production') {
     graphqlUri = 'http://localhost:3000/graphql';
 }
 
-const apolloClient = new ApolloClient({
-    uri: graphqlUri,
-    cache: new InMemoryCache({
-        typePolicies: {
-            Query: {
-                fields: {
-                    searchProblems: {
-                        keyArgs: ['text', 'categoryIds', 'favorites'],
-
-                        merge(existing, incoming, { args: { cursor }, readField }) {
-                            if (!cursor) {
-                                return incoming;
-                            }
-
-                            const merged = existing ? existing.edges.slice(0) : [];
-
-                            let offset = offsetFromCursor(merged, cursor, readField);
-                            if (offset < 0) offset = merged.length;
-
-                            for (let i = 0; i < incoming.edges.length; ++i) {
-                                merged[offset + i] = incoming.edges[i];
-                            }
-                            return {
-                                edges: merged,
-                                pageInfo: incoming.pageInfo
-                            };
-                        }
-                    }
-                }
-            }
-        }
-    })
+const httpLink = new HttpLink({
+    uri: graphqlUri
 });
 
-function offsetFromCursor(items, cursor, readField) {
-    for (let i = items.length - 1; i >= 0; --i) {
-        const item = items[i];
-        if (readField('_id', item) === cursor) {
-            return i + 1;
-        }
-    }
-    return -1;
-}
+const errorLink = onError(({ graphQLErrors, networkError }) => {
+    if (graphQLErrors)
+        graphQLErrors.forEach(({ message, extensions }) => {
+            let errorMessage = message;
+            const responseMessage = (extensions as GraphQLExtensions).response?.message;
+            if (Array.isArray(responseMessage) && responseMessage.length > 0) {
+                errorMessage = `${message}: ${responseMessage.join(', ')}`;
+            } else if (responseMessage && responseMessage !== errorMessage) {
+                errorMessage = `${message}: ${responseMessage}`
+            }
+            messageBroker.addErrorMessage(errorMessage);
+        });
+    if (networkError) messageBroker.addErrorMessage(`[Network error]: ${networkError}`);
+});
+
+const apolloClient = new ApolloClient({
+    cache: apolloCache,
+    link: ApolloLink.from([errorLink, httpLink])
+});
 
 export default apolloClient;

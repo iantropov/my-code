@@ -6,6 +6,7 @@ import classnames from 'classnames';
 
 import { REGISTER_USER_MUTATION } from '../../lib/graphql';
 import { Main } from '../../components/Main';
+import { messageBroker } from '../../lib/message-broker';
 
 import styles from './register.module.scss';
 
@@ -44,11 +45,10 @@ const Register: NextPage = () => {
         registerUser({ variables: { name, email, password } }).then(
             () => {
                 router.push('/users/login');
+                messageBroker.addSuccessMessage('Registered the user successfully!');
             },
-            error => {
+            () => {
                 setIsUserRegistering(false);
-                console.log(error);
-                alert(error);
             }
         );
     };

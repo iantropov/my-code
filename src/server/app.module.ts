@@ -1,9 +1,12 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { Logger, MiddlewareConsumer, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import passport from 'passport';
+import mongoose from 'mongoose';
+import * as util from 'node:util';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -12,7 +15,6 @@ import { UsersModule } from './users/users.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { ProblemsModule } from './problems/problems.module';
 import { AuthModule } from './auth/auth.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
     imports: [
@@ -40,8 +42,22 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     providers: [AppService]
 })
 export class AppModule {
+    logger = new Logger('Mongoose');
+
     configure(consumer: MiddlewareConsumer): void {
         // consumer.apply(LoggerMiddleware).forRoutes('*');
         consumer.apply(LoggerMiddleware, passport.initialize(), passport.session()).forRoutes('*');
+
+        mongoose.set('debug', (collectionName, methodName, ...methodArgs) => {
+            const msgMapper = m => {
+                return util
+                    .inspect(m, false, 10, true)
+                    .replace(/\n/g, '')
+                    .replace(/\s{2,}/g, ' ');
+            };
+            this.logger.log(
+                `${collectionName}.${methodName}(${methodArgs.map(msgMapper).join(', ')})`
+            );
+        });
     }
 }
